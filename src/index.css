@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/* ── Brand Tokens ── */
+@theme {
+  --color-yellow: #FFD400;
+  --color-black: #0A0A0A;
+  --color-white: #FFFFFF;
+  --color-offwhite: #FAFAFA;
+  --color-charcoal: #4A4A4A;
+
+  --font-heading: "Archivo Black", sans-serif;
+  --font-body: "Inter Tight", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* ── Base Resets ── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-charcoal);
+  background: var(--color-offwhite);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  color: var(--color-black);
+  margin: 0;
+}
+
+/* ── Utility Classes ── */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ── Hazard Stripe ── */
+.hazard-stripe {
+  background: repeating-linear-gradient(
+    45deg,
+    #FFD400,
+    #FFD400 8px,
+    #0A0A0A 8px,
+    #0A0A0A 16px
+  );
+}
+
+/* ── Brand Button Base ── */
+.btn {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 2px solid var(--color-black);
+  box-shadow: 3px 3px 0 var(--color-black);
+  cursor: pointer;
+  transition: box-shadow 0.1s, transform 0.1s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:active {
+  box-shadow: 1px 1px 0 var(--color-black);
+  transform: translate(2px, 2px);
+}
+
+.btn-black {
+  background: var(--color-black);
+  color: var(--color-yellow);
+}
+
+.btn-yellow {
+  background: var(--color-yellow);
+  color: var(--color-black);
+}
+
+.btn-white {
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+/* ── Status Pills ── */
+.pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 10px;
+  border: 1.5px solid var(--color-black);
+  display: inline-block;
+}
+
+.pill-sent {
+  background: var(--color-yellow);
+}
+
+.pill-draft {
+  background: var(--color-white);
+  border-style: dashed;
+}
+
+/* ── Waveform Animation ── */
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.2); }
+  50% { transform: scaleY(1); }
+}
+
+.waveform-bar {
+  width: 4px;
+  height: 32px;
+  background: var(--color-yellow);
+  border-radius: 2px;
+  transform-origin: center;
+  animation: waveform 0.8s ease-in-out infinite;
+}
+
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(5) { animation-delay: 0.15s; }
+.waveform-bar:nth-child(6) { animation-delay: 0.25s; }
+.waveform-bar:nth-child(7) { animation-delay: 0.05s; }
+
+.waveform-bar-idle {
+  animation: none;
+  transform: scaleY(0.15);
+}
+
+/* ── Blinking Recording Dot ── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  background: #EF4444;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* ── Spinner ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-yellow);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
