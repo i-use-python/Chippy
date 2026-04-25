@@ -48,9 +48,9 @@ export default function ReviewReport() {
   if (!job) return null;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* Header */}
-      <header className="px-5 pt-8 pb-4">
+    <div className="min-h-screen bg-offwhite flex flex-col">
+      {/* Black banner header */}
+      <header className="bg-black px-5 pt-8 pb-4">
         <button
           onClick={() => navigate('/label')}
           className="font-mono text-xs uppercase tracking-widest text-white/40 mb-4 block"
@@ -69,12 +69,12 @@ export default function ReviewReport() {
         )}
       </header>
 
-      <main className="flex-1 px-5 pb-28">
+      <main className="flex-1 px-5 pt-5 pb-28">
         {loading ? (
           /* Loading state */
           <div className="flex flex-col items-center justify-center py-16">
             <div className="spinner mb-6" />
-            <p className="font-mono text-xs uppercase tracking-widest text-white/50">
+            <p className="font-mono text-xs uppercase tracking-widest text-charcoal/50">
               Claude is writing your report...
             </p>
           </div>
@@ -82,8 +82,8 @@ export default function ReviewReport() {
           <>
             {/* Error banner */}
             {error && (
-              <div className="bg-red-500/20 border border-red-500 px-4 py-2 mb-4">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-red-400">
+              <div className="bg-red-500/10 border border-red-400 px-4 py-2 mb-4">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-red-600">
                   API Error: {error}
                 </p>
               </div>
@@ -108,18 +108,9 @@ export default function ReviewReport() {
                   </p>
                 </div>
 
-                {/* Summary */}
-                {report?.summary && (
-                  <div className="bg-yellow/20 border border-yellow px-3 py-2 mb-4">
-                    <p className="font-body text-sm text-black font-medium">
-                      {report.summary}
-                    </p>
-                  </div>
-                )}
-
                 {/* Work Performed */}
                 <section className="mb-4">
-                  <h3 className="font-heading text-xs uppercase tracking-wider text-black mb-2">
+                  <h3 className="inline-block bg-yellow px-2 py-0.5 font-heading text-[11px] uppercase tracking-wider text-black mb-2">
                     Work Performed
                   </h3>
                   <p className="font-body text-sm text-charcoal leading-relaxed">
@@ -130,7 +121,7 @@ export default function ReviewReport() {
                 {/* Materials Used */}
                 {report?.materialsUsed?.length > 0 && (
                   <section className="mb-4">
-                    <h3 className="font-heading text-xs uppercase tracking-wider text-black mb-2">
+                    <h3 className="inline-block bg-yellow px-2 py-0.5 font-heading text-[11px] uppercase tracking-wider text-black mb-2">
                       Materials Used
                     </h3>
                     <ul className="space-y-1">
@@ -147,37 +138,17 @@ export default function ReviewReport() {
                   </section>
                 )}
 
-                {/* Notes */}
-                {report?.notes?.length > 0 && (
-                  <section className="mb-4">
-                    <h3 className="font-heading text-xs uppercase tracking-wider text-black mb-2">
-                      Notes
-                    </h3>
-                    <ul className="space-y-1.5">
-                      {report.notes.map((note, i) => (
-                        <li
-                          key={i}
-                          className="font-body text-sm text-charcoal flex items-start gap-2"
-                        >
-                          <span className="text-yellow font-bold mt-0.5">•</span>
-                          {note}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-
-                {/* Photo thumbnails */}
+                {/* Photos */}
                 {job.photos?.length > 0 && (
                   <section>
-                    <h3 className="font-heading text-xs uppercase tracking-wider text-black mb-2">
+                    <h3 className="inline-block bg-yellow px-2 py-0.5 font-heading text-[11px] uppercase tracking-wider text-black mb-2">
                       Photos
                     </h3>
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="flex gap-1.5 overflow-x-auto">
                       {job.photos.map((photo) => (
                         <div
                           key={photo.id}
-                          className="w-12 h-12 border border-black/20 overflow-hidden"
+                          className="w-12 h-12 shrink-0 border border-black/20 overflow-hidden"
                         >
                           {photo.dataUrl ? (
                             <img
@@ -201,7 +172,7 @@ export default function ReviewReport() {
 
       {/* Bottom Buttons */}
       {!loading && (
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-gradient-to-t from-black via-black to-transparent pt-8">
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-gradient-to-t from-offwhite via-offwhite to-transparent pt-8">
           <div className="flex gap-3">
             <button
               onClick={() => navigate('/record')}

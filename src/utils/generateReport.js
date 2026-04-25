@@ -17,12 +17,6 @@ const FALLBACK_REPORT = {
     'Brushed nickel tapware',
     'Silicone sealant',
   ],
-  notes: [
-    'Existing wall insulation was degraded — upgraded to R2.6 batts',
-    'Framing in good condition, no water damage found',
-    'Client advised not to use shower for 24 hours to allow silicone to cure',
-  ],
-  summary: 'Complete bathroom renovation with insulation upgrade at 42 Queen St.',
 };
 
 export async function generateReport({ address, date, transcript, photos }) {
