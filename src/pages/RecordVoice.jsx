@@ -10,15 +10,26 @@ function formatTime(seconds) {
   return `${String(h).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function formatDuration(startISO, finishISO) {
+  if (!startISO || !finishISO) return null;
+  const ms = new Date(finishISO) - new Date(startISO);
+  const totalMin = Math.round(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+
 export default function RecordVoice() {
   const navigate = useNavigate();
   const [job, setJob] = useState(() => getCurrentJob() || startNewJob('42 Queen St, Ponsonby'));
-  const [address, setAddress] = useState(job.address || '42 Queen St, Ponsonby');
   const [isRecording, setIsRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [transcript, setTranscript] = useState(job.transcript || '');
   const [interimText, setInterimText] = useState('');
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [startTime, setStartTime] = useState(job.startTime || null);
+  const [finishTime, setFinishTime] = useState(job.finishTime || null);
 
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
@@ -84,16 +95,30 @@ export default function RecordVoice() {
 
   const toggleRecording = useCallback(() => {
     if (isRecording) {
-      // Stop
+      // Stop — capture finish time
+      const now = new Date().toISOString();
       setIsRecording(false);
+      setFinishTime(now);
       clearInterval(timerRef.current);
       if (recognitionRef.current) {
         recognitionRef.current._shouldBeRunning = false;
         recognitionRef.current.stop();
       }
+      // Persist timing to job
+      const updated = { ...getCurrentJob(), finishTime: now };
+      saveCurrentJob(updated);
+      setJob(updated);
     } else {
-      // Start
+      // Start — capture start time (only on first recording start)
+      const now = new Date().toISOString();
       setIsRecording(true);
+      setFinishTime(null);
+      if (!startTime) {
+        setStartTime(now);
+        const updated = { ...getCurrentJob(), startTime: now };
+        saveCurrentJob(updated);
+        setJob(updated);
+      }
       setSeconds(0);
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
       if (recognitionRef.current && speechSupported) {
@@ -101,48 +126,71 @@ export default function RecordVoice() {
         try { recognitionRef.current.start(); } catch (e) { /* already running */ }
       }
     }
-  }, [isRecording, speechSupported]);
+  }, [isRecording, speechSupported, startTime]);
 
   const useDemoTranscript = () => {
     setTranscript(DEMO_TRANSCRIPT);
+    // Set realistic demo timing
+    const demoStart = new Date(Date.now() - 9.25 * 3600000).toISOString();
+    const demoFinish = new Date().toISOString();
+    setStartTime(demoStart);
+    setFinishTime(demoFinish);
+    const updated = { ...getCurrentJob(), startTime: demoStart, finishTime: demoFinish };
+    saveCurrentJob(updated);
+    setJob(updated);
   };
 
   const handleContinue = () => {
-    // Save transcript + address to current job
+    // If still recording, stop first and capture finish time
+    let currentFinish = finishTime;
+    if (isRecording) {
+      const now = new Date().toISOString();
+      currentFinish = now;
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+      if (recognitionRef.current) {
+        recognitionRef.current._shouldBeRunning = false;
+        recognitionRef.current.stop();
+      }
+    }
+
     const updatedJob = {
-      ...job,
-      address,
+      ...getCurrentJob(),
       transcript: transcript.trim() || DEMO_TRANSCRIPT,
+      finishTime: currentFinish || new Date().toISOString(),
     };
     saveCurrentJob(updatedJob);
     navigate('/photos');
   };
 
   const hasTranscript = transcript.trim().length > 0;
+  const totalTime = formatDuration(startTime, finishTime);
 
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
       {/* Header */}
       <header className="px-5 pt-8 pb-4">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/client')}
           className="font-mono text-xs uppercase tracking-widest text-charcoal/50 mb-4 block"
         >
           ← Back
         </button>
 
-        {/* Address input */}
-        <label className="font-mono text-[11px] uppercase tracking-widest text-charcoal/60 block mb-1">
-          Job Site Address
-        </label>
-        <input
-          type="text"
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          className="w-full bg-white border-2 border-black px-4 py-3 font-body text-sm
-                     text-black placeholder:text-charcoal/40 outline-none"
-          placeholder="e.g. 42 Queen St, Ponsonby"
-        />
+        {/* Job info bar */}
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="font-heading text-sm text-black">{job.address || 'New Job'}</p>
+            {job.ref && (
+              <p className="font-mono text-[10px] text-charcoal/40 mt-0.5">{job.ref}</p>
+            )}
+          </div>
+          {totalTime && (
+            <span className="font-mono text-[11px] uppercase tracking-widest text-yellow bg-black px-2 py-1">
+              On site: {totalTime}
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Recording Area */}

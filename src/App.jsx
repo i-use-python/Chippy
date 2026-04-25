@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
+import BusinessProfile from './pages/BusinessProfile'
+import ClientDetails from './pages/ClientDetails'
 import RecordVoice from './pages/RecordVoice'
 import AddPhotos from './pages/AddPhotos'
 import LabelPhotos from './pages/LabelPhotos'
@@ -11,6 +13,8 @@ export default function App() {
     <div className="max-w-[430px] mx-auto min-h-screen bg-offwhite relative">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/profile" element={<BusinessProfile />} />
+        <Route path="/client" element={<ClientDetails />} />
         <Route path="/record" element={<RecordVoice />} />
         <Route path="/photos" element={<AddPhotos />} />
         <Route path="/label" element={<LabelPhotos />} />

@@ -1,13 +1,17 @@
 /**
  * jobStore.js — localStorage-based state management for Chippy.
  *
- * Two keys:
- *   chippy_current_job  → the job currently being created (in-progress flow)
- *   chippy_jobs          → array of all completed/saved jobs (shown on Home)
+ * Keys:
+ *   chippy_current_job      → the job currently being created (in-progress flow)
+ *   chippy_jobs              → array of all completed/saved jobs (shown on Home)
+ *   chippy_business_profile  → one-time business/tradie profile
+ *   chippy_job_counter       → auto-incrementing counter for job reference numbers
  */
 
 const CURRENT_JOB_KEY = 'chippy_current_job';
 const JOBS_KEY = 'chippy_jobs';
+const PROFILE_KEY = 'chippy_business_profile';
+const COUNTER_KEY = 'chippy_job_counter';
 
 // ── One-time migration from old "sitenote_*" keys ──
 
@@ -35,6 +39,44 @@ function migrateFromSiteNote() {
 // Run migration on module load
 migrateFromSiteNote();
 
+// ── Business Profile ──
+
+const DEFAULT_PROFILE = {
+  businessName: "Mike's Building Co.",
+  tagline: 'BUILDING · RENOVATIONS · NZ',
+  phone: '021 488 6723',
+  email: 'mike@mikesbuilding.co.nz',
+  lbpNumber: 'BP122475',
+  nzbn: '9429048627104',
+  tradieName: 'Mike Turner',
+};
+
+export function getBusinessProfile() {
+  const data = localStorage.getItem(PROFILE_KEY);
+  return data ? JSON.parse(data) : null;
+}
+
+export function saveBusinessProfile(profile) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+}
+
+export function seedBusinessProfile() {
+  if (!getBusinessProfile()) {
+    saveBusinessProfile(DEFAULT_PROFILE);
+  }
+}
+
+// ── Job Reference Number ──
+
+function nextJobReference() {
+  const year = new Date().getFullYear();
+  const raw = localStorage.getItem(COUNTER_KEY);
+  let counter = raw ? parseInt(raw, 10) : 0;
+  counter += 1;
+  localStorage.setItem(COUNTER_KEY, String(counter));
+  return `JR-${year}-${String(counter).padStart(4, '0')}`;
+}
+
 // ── Current Job (the one being recorded right now) ──
 
 export function getCurrentJob() {
@@ -53,14 +95,20 @@ export function clearCurrentJob() {
 export function startNewJob(address = '') {
   const job = {
     id: Date.now().toString(36),
+    ref: nextJobReference(),
     address,
-    client: '',
-    description: '',
+    clientName: '',
+    clientAddress: '',
+    clientPhone: '',
+    jobTitle: '',
+    jobLocation: '',
     date: new Date().toISOString(),
     transcript: '',
     photos: [],       // [{ id, dataUrl, label }]
     report: null,
     status: 'draft',
+    startTime: null,  // ISO timestamp — set when recording begins
+    finishTime: null, // ISO timestamp — set when recording stops
   };
   saveCurrentJob(job);
   return job;
