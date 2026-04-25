@@ -1,13 +1,39 @@
 /**
- * jobStore.js — localStorage-based state management for SiteNote.
+ * jobStore.js — localStorage-based state management for Chippy.
  *
  * Two keys:
- *   sitenote_current_job  → the job currently being created (in-progress flow)
- *   sitenote_jobs          → array of all completed/saved jobs (shown on Home)
+ *   chippy_current_job  → the job currently being created (in-progress flow)
+ *   chippy_jobs          → array of all completed/saved jobs (shown on Home)
  */
 
-const CURRENT_JOB_KEY = 'sitenote_current_job';
-const JOBS_KEY = 'sitenote_jobs';
+const CURRENT_JOB_KEY = 'chippy_current_job';
+const JOBS_KEY = 'chippy_jobs';
+
+// ── One-time migration from old "sitenote_*" keys ──
+
+function migrateFromSiteNote() {
+  const OLD_CURRENT = 'sitenote_current_job';
+  const OLD_JOBS = 'sitenote_jobs';
+
+  const oldCurrent = localStorage.getItem(OLD_CURRENT);
+  if (oldCurrent !== null) {
+    if (localStorage.getItem(CURRENT_JOB_KEY) === null) {
+      localStorage.setItem(CURRENT_JOB_KEY, oldCurrent);
+    }
+    localStorage.removeItem(OLD_CURRENT);
+  }
+
+  const oldJobs = localStorage.getItem(OLD_JOBS);
+  if (oldJobs !== null) {
+    if (localStorage.getItem(JOBS_KEY) === null) {
+      localStorage.setItem(JOBS_KEY, oldJobs);
+    }
+    localStorage.removeItem(OLD_JOBS);
+  }
+}
+
+// Run migration on module load
+migrateFromSiteNote();
 
 // ── Current Job (the one being recorded right now) ──
 

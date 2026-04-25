@@ -33,7 +33,7 @@ export default function SendSave() {
 
   const handleDownloadPdf = () => {
     const doc = generatePdf(job);
-    const filename = `SiteNote_${job.address.replace(/[^a-zA-Z0-9]/g, '_')}_${
+    const filename = `Chippy_${job.address.replace(/[^a-zA-Z0-9]/g, '_')}_${
       new Date(job.date).toISOString().split('T')[0]
     }.pdf`;
     doc.save(filename);
@@ -116,7 +116,7 @@ export default function SendSave() {
                 </div>
                 <div>
                   <p className="font-mono text-[10px] text-black">
-                    SiteNote_JobRecord.pdf
+                    Chippy_JobRecord.pdf
                   </p>
                   <p className="font-mono text-[9px] text-charcoal/50">
                     ~{job.photos?.filter((p) => p.dataUrl).length > 0 ? '2.4' : '0.3'} MB
