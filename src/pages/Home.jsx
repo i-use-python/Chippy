@@ -93,8 +93,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
       {/* Header */}
-      <header className="px-5 pt-12 pb-2 flex items-start justify-between">
+      <header className="px-5 pt-8 pb-2 flex items-start justify-between">
         <div>
+          <img src="/logo.png" alt="Chippy" className="h-[80px] mb-3" />
           <h1 className="font-heading text-3xl text-black leading-tight">
             Kia ora, {USER_NAME}
           </h1>

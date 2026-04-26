@@ -363,31 +363,47 @@ export default function ReviewReport() {
 
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
-      {/* Black banner header */}
-      <header className="bg-black px-5 pt-8 pb-4">
-        <button
-          onClick={() => navigate('/label')}
-          className="font-mono text-xs uppercase tracking-widest text-white/40 mb-4 block"
-        >
-          ← Back
-        </button>
-        <h1 className="font-heading text-2xl text-white">
-          {loading ? 'Generating your report...' : "Your report's ready"}
-        </h1>
+      {/* Header */}
+      <header className="px-5 pt-8 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigate('/label')}
+            className="font-mono text-xs uppercase tracking-widest text-charcoal/50 block"
+          >
+            ← Back
+          </button>
+          <img src="/logo.png" alt="Chippy" className="h-[40px]" />
+        </div>
         {!loading && (
-          <p className="font-mono text-[11px] uppercase tracking-widest text-yellow mt-1">
-            {usedFallback
-              ? 'Using sample report (API unavailable)'
-              : `Chippy generated in ${elapsed}s`}
-          </p>
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              {job.ref && (
+                <span className="font-mono text-[10px] uppercase tracking-widest text-charcoal/40">
+                  {job.ref}
+                </span>
+              )}
+              <span className="font-mono text-[10px] uppercase tracking-widest text-charcoal/40">
+                {formatDateShort(job.date)}
+              </span>
+            </div>
+            <h1 className="font-heading text-2xl text-black">
+              {job.address || 'Job Report'}
+            </h1>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50 mt-1">
+              {usedFallback
+                ? 'Using sample report (API unavailable)'
+                : `Chippy created in ${elapsed}s`}
+            </p>
+          </>
         )}
       </header>
 
       <main className="flex-1 px-5 pt-5 pb-28">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
+            <img src="/logo.png" alt="Chippy" className="h-[100px] mb-6" />
             <div className="spinner mb-6" />
-            <p className="font-mono text-xs uppercase tracking-widest text-charcoal/50">
+            <p className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50">
               Chippy is writing your report...
             </p>
           </div>
@@ -614,7 +630,7 @@ export default function ReviewReport() {
               {/* ── Black Footer Bar ── */}
               <div className="bg-black px-4 py-2 flex items-center justify-between">
                 <p className="font-mono text-[8px] uppercase tracking-widest text-white/60">
-                  ● Generated with <span className="text-yellow">Chippy</span>
+                  ● Created with <span className="text-yellow">Chippy</span>
                 </p>
                 <p className="font-mono text-[8px] uppercase tracking-widest text-white/40">
                   {job.ref ? `Ref: ${job.ref} · ` : ''}Tamper-proof record

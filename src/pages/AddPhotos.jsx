@@ -144,7 +144,6 @@ export default function AddPhotos() {
           type="file"
           accept="image/*"
           multiple
-          capture="environment"
           className="hidden"
           onChange={handleFiles}
         />
