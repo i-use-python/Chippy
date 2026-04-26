@@ -35,6 +35,12 @@ export const DEMO_JOBS = [
         'Brushed nickel tapware',
         'Silicone sealant',
       ],
+      notes: [
+        'Existing framing in good condition — no signs of water damage or rot',
+        'Wall insulation was degraded and well past its useful life — upgraded to R2.6 batts while walls were open',
+        'All existing plumbing connections in serviceable condition, no leaks detected',
+        'Client advised not to use shower for 24 hours to allow silicone sealant to fully cure',
+      ],
     },
   },
   {
@@ -60,6 +66,11 @@ export const DEMO_JOBS = [
         '6x kwila deck boards (140x25mm)',
         'Cabots deck stain — Merbau (10L)',
         'Stainless steel deck screws',
+      ],
+      notes: [
+        'Two bearers on the north side showing early signs of rot — recommend monitoring and possible replacement within 12 months',
+        'All joists checked and in good condition',
+        'Existing stainless fixings reused where possible to reduce waste',
       ],
     },
   },

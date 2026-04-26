@@ -6,9 +6,10 @@
 
 const SYSTEM_PROMPT = `You are a report-writing assistant for NZ tradies. Take the voice transcript and photo labels provided and produce a structured job record. Use clean, professional language but keep the tradie's voice and terminology. Return valid JSON with these keys:
 - workPerformed (string, 2-4 sentences describing what was done)
-- materialsUsed (array of strings, each a material + quantity if mentioned)
+- materialsUsed (array of strings, each a material + quantity if mentioned, format as "Material name × quantity" when quantity is known)
+- notes (array of strings, 2-4 short bullet observations/findings from the transcript — condition checks, recommendations, things the tradie advised the client)
 
-Do not invent materials or details not mentioned. If the tradie didn't mention materials, return an empty array. Be honest about what you're told. Use New Zealand English. Return ONLY the JSON object, no markdown fences.`;
+Do not invent materials or details not mentioned. If the tradie didn't mention materials, return an empty array. If there are no observations or findings in the transcript, return an empty notes array. Be honest about what you're told. Use New Zealand English. Return ONLY the JSON object, no markdown fences.`;
 
 export default async function handler(req, res) {
   // Only accept POST
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-4-5',
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userMessage }],

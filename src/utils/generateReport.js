@@ -17,6 +17,12 @@ const FALLBACK_REPORT = {
     'Brushed nickel tapware',
     'Silicone sealant',
   ],
+  notes: [
+    'Existing framing in good condition — no signs of water damage or rot',
+    'Wall insulation was degraded and well past its useful life — upgraded to R2.6 batts while walls were open',
+    'All existing plumbing connections in serviceable condition, no leaks detected',
+    'Client advised not to use shower for 24 hours to allow silicone sealant to fully cure',
+  ],
 };
 
 export async function generateReport({ address, date, transcript, photos }) {
