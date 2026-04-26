@@ -6,9 +6,7 @@ import { generatePdf } from '../utils/generatePdf';
 export default function SendSave() {
   const navigate = useNavigate();
   const [job, setJob] = useState(getCurrentJob);
-  const [email, setEmail] = useState(job?.clientName ? '' : 'sarah.harper@email.co.nz');
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [mailOpened, setMailOpened] = useState(false);
   const profile = getBusinessProfile() || {};
 
   if (!job) {
@@ -25,36 +23,43 @@ export default function SendSave() {
     doc.save(pdfFilename);
   };
 
-  const handleSend = () => {
-    if (!email.trim()) return;
-    setSending(true);
-
+  const handleOpenMail = () => {
     // 1. Download the PDF so it's ready to attach
     handleDownloadPdf();
 
     // 2. Build mailto URL
-    const clientFirstName = email.split('@')[0].split('.')[0];
+    const clientFirstName = job.clientName
+      ? job.clientName.split(' ')[0]
+      : 'there';
     const dateStr = new Date(job.date).toLocaleDateString('en-NZ', {
       day: 'numeric', month: 'long', year: 'numeric',
     });
     const tradieName = profile.tradieName || 'The team';
 
+    const bodyText = [
+      `Hi ${clientFirstName},`,
+      '',
+      `Please find attached the job record for work completed at ${job.address} on ${dateStr}.`,
+      '',
+      'The PDF has been downloaded to your device — please attach it to this email before sending.',
+      '',
+      'Thanks,',
+      tradieName,
+    ].join('\r\n');
+
     const subject = encodeURIComponent(`Job Record — ${job.address}`);
-    const body = encodeURIComponent(
-      `Hi ${clientFirstName},\r\n\r\nPlease find attached the job record for work completed at ${job.address} on ${dateStr}.\r\n\r\nThe PDF has been downloaded — please attach it to this email before sending.\r\n\r\nThanks,\r\n${tradieName}`
-    );
-    const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
+    const body = encodeURIComponent(bodyText);
+    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
 
     // 3. Open mail app
     window.location.href = mailtoUrl;
 
-    // 4. Mark as sent
-    const updated = { ...job, status: 'sent', client: email };
+    // 4. Mark as sent and save
+    const updated = { ...job, status: 'sent' };
     saveCurrentJob(updated);
     saveJobToHistory(updated);
     setJob(updated);
-    setSent(true);
-    setSending(false);
+    setMailOpened(true);
   };
 
   const handleSavePhotos = () => {
@@ -74,10 +79,12 @@ export default function SendSave() {
     navigate('/');
   };
 
+  const photoCount = (job.photos || []).filter((p) => p.dataUrl).length;
+
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
       <header className="px-5 pt-8 pb-4">
-        {!sent && (
+        {!mailOpened && (
           <button
             onClick={() => navigate('/report')}
             className="font-mono text-xs uppercase tracking-widest text-charcoal/50 mb-4 block"
@@ -89,72 +96,45 @@ export default function SendSave() {
           Final step
         </p>
         <h1 className="font-heading text-2xl text-black">
-          {sent ? 'Report sent!' : 'Send to client'}
+          {mailOpened ? 'Mail app opened' : 'Send your report'}
         </h1>
       </header>
 
       <main className="flex-1 px-5 pb-28">
-        {!sent ? (
+        {!mailOpened ? (
           <>
-            {/* Email input */}
-            <label className="font-mono text-[11px] uppercase tracking-widest text-charcoal/60 block mb-1">
-              Client Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white border-2 border-black px-4 py-3 font-body text-sm
-                         text-black placeholder:text-charcoal/40 outline-none mb-6"
-              placeholder="client@email.co.nz"
-            />
+            <p className="font-body text-sm text-charcoal mb-8 leading-relaxed">
+              Tap below to open your mail app with the job details pre-filled.
+              The PDF will download — attach it to the email before sending.
+            </p>
 
-            {/* Email Preview Card */}
-            <div className="bg-white border-2 border-black p-4">
-              <div className="border-b border-black/10 pb-3 mb-3">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-charcoal/40 mb-1">
-                  Email Preview
-                </p>
-                <p className="font-body text-sm text-black font-medium">
-                  Job Record — {job.address}
-                </p>
-              </div>
+            {/* Open Mail App button */}
+            <button
+              onClick={handleOpenMail}
+              className="btn btn-yellow w-full py-4 text-sm mb-4"
+            >
+              Open Mail App
+            </button>
 
-              <p className="font-body text-sm text-charcoal mb-3">
-                Hi{email ? ` ${email.split('@')[0].split('.')[0]}` : ''},
-              </p>
-              <p className="font-body text-sm text-charcoal mb-3">
-                Please find attached the job record for work completed at{' '}
-                <strong>{job.address}</strong> on{' '}
-                {new Date(job.date).toLocaleDateString('en-NZ', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-                .
-              </p>
-              <p className="font-body text-sm text-charcoal/60 mb-3 italic">
-                The PDF has been downloaded — please attach it to this email before sending.
-              </p>
+            {/* Secondary actions */}
+            <button
+              onClick={handleDownloadPdf}
+              className="btn btn-white w-full py-4 text-sm mb-3"
+            >
+              Download PDF Only
+            </button>
 
-              {/* PDF attachment preview */}
-              <div className="flex items-center gap-3 bg-offwhite border border-black/10 px-3 py-2 mt-4">
-                <div className="w-8 h-10 bg-red-500 flex items-center justify-center shrink-0">
-                  <span className="text-white font-mono text-[8px] font-bold">PDF</span>
-                </div>
-                <div>
-                  <p className="font-mono text-[10px] text-black">
-                    {pdfFilename}
-                  </p>
-                  <p className="font-mono text-[9px] text-charcoal/50">
-                    Will be downloaded when you tap Send
-                  </p>
-                </div>
-              </div>
-            </div>
+            {photoCount > 0 && (
+              <button
+                onClick={handleSavePhotos}
+                className="btn btn-white w-full py-4 text-sm"
+              >
+                Save Photos to Phone
+              </button>
+            )}
           </>
         ) : (
-          /* Sent confirmation */
+          /* Confirmation after opening mail */
           <div className="text-center py-8">
             {/* Checkmark */}
             <div className="w-20 h-20 bg-yellow border-2 border-black rounded-full
@@ -166,28 +146,22 @@ export default function SendSave() {
             </div>
 
             <h2 className="font-heading text-xl text-black mb-2">Sweet as!</h2>
-            <p className="font-body text-sm text-charcoal mb-1">
-              Report sent to <strong>{email}</strong>
+            <p className="font-body text-sm text-charcoal mb-6 leading-relaxed">
+              Don't forget to attach the PDF before sending!
             </p>
             <p className="font-mono text-[10px] uppercase tracking-widest text-charcoal/40">
               {job.address}
             </p>
 
-            {/* Action buttons */}
+            {/* Post-send actions */}
             <div className="flex flex-col gap-3 mt-8">
-              <button
-                onClick={handleDownloadPdf}
-                className="btn btn-black w-full py-4 text-sm"
-              >
-                Download PDF
-              </button>
               <button
                 onClick={handleDownloadPdf}
                 className="btn btn-white w-full py-4 text-sm"
               >
-                Save to Phone
+                Download PDF Again
               </button>
-              {job.photos?.filter((p) => p.dataUrl).length > 0 && (
+              {photoCount > 0 && (
                 <button
                   onClick={handleSavePhotos}
                   className="btn btn-white w-full py-4 text-sm"
@@ -201,25 +175,13 @@ export default function SendSave() {
       </main>
 
       {/* Bottom Button */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-gradient-to-t from-offwhite via-offwhite to-transparent pt-8">
-        {!sent ? (
-          <button
-            onClick={handleSend}
-            disabled={!email.trim() || sending}
-            className={`btn w-full py-4 text-sm ${
-              email.trim() && !sending
-                ? 'btn-yellow'
-                : 'btn-yellow opacity-40 cursor-not-allowed'
-            }`}
-          >
-            {sending ? 'Opening mail...' : 'Send Report ↗'}
-          </button>
-        ) : (
+      {mailOpened && (
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-gradient-to-t from-offwhite via-offwhite to-transparent pt-8">
           <button onClick={handleDone} className="btn btn-yellow w-full py-4 text-sm">
             Done
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

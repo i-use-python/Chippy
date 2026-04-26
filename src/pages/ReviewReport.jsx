@@ -359,8 +359,6 @@ export default function ReviewReport() {
     (a, b) => labelOrder.indexOf(a) - labelOrder.indexOf(b)
   );
 
-  const voiceDateTag = `VOICE · ${formatDateShort(job.date)}`;
-
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
       {/* Header */}
@@ -516,7 +514,7 @@ export default function ReviewReport() {
                   <>
                     {/* ── Section 1: Work Performed ── */}
                     <section className="mb-5">
-                      <SectionHeader number="1" title="Work Performed" tag={`● ${voiceDateTag}`} />
+                      <SectionHeader number="1" title="Work Performed" />
                       <p className="font-body text-sm text-charcoal leading-relaxed">
                         {report?.workPerformed}
                       </p>
