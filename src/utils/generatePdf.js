@@ -49,16 +49,33 @@ function parseMaterial(str) {
 
 // ── Draw hazard stripe down left edge of the current page ──
 
+function drawHazardStripe(doc, x, y, width, height) {
+  // Yellow background fill for the entire stripe
+  doc.setFillColor(255, 212, 0);
+  doc.rect(x, y, width, height, 'F');
+
+  // Save state, set up clipping to keep diagonals inside the stripe
+  doc.saveGraphicsState();
+  doc.rect(x, y, width, height).clip();
+  doc.discardPath();
+
+  // Black diagonal lines, ~3pt thick, ~6pt apart
+  doc.setDrawColor(10, 10, 10);
+  doc.setLineWidth(3);
+
+  const spacing = 6;
+  const slope = 1; // 45-degree angle
+
+  for (let i = -height; i < height + width; i += spacing) {
+    doc.line(x + i, y, x + i + height * slope, y + height);
+  }
+
+  doc.restoreGraphicsState();
+}
+
 function drawLeftHazardStripe(doc) {
   const pageHeight = doc.internal.pageSize.getHeight();
-  const stripeW = 10;
-  const segH = 6;
-  for (let sy = 0; sy < pageHeight; sy += segH * 2) {
-    doc.setFillColor(255, 212, 0);
-    doc.rect(0, sy, stripeW, segH, 'F');
-    doc.setFillColor(10, 10, 10);
-    doc.rect(0, sy + segH, stripeW, segH, 'F');
-  }
+  drawHazardStripe(doc, 0, 0, 4, pageHeight);
 }
 
 // ── Page break helper — draws hazard stripe on new page ──
@@ -68,7 +85,7 @@ function checkPageBreak(doc, y, needed, margin) {
   if (y + needed > pageHeight - 30) {
     doc.addPage();
     drawLeftHazardStripe(doc);
-    return margin || 25;
+    return margin || 10;
   }
   return y;
 }
@@ -121,7 +138,7 @@ function drawSectionHeader(doc, margin, y, number, title, tag) {
 export function generatePdf(job) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const leftMargin = 18; // left edge of hazard stripe is 0-10, content starts at 18
+  const leftMargin = 10; // left edge of hazard stripe is 0-4, content starts at 10
   const rightMargin = 15;
   const contentLeft = leftMargin;
   const contentRight = pageWidth - rightMargin;
@@ -278,7 +295,7 @@ export function generatePdf(job) {
   }
 
   // ── Section 1: Work Performed ──
-  y = checkPageBreak(doc, y, 30, 18);
+  y = checkPageBreak(doc, y, 30, 10);
   y = drawSectionHeader(doc, contentLeft, y, 1, 'Work Performed');
 
   doc.setFontSize(9);
@@ -286,7 +303,7 @@ export function generatePdf(job) {
   doc.setTextColor(74, 74, 74);
   const workLines = doc.splitTextToSize(report.workPerformed || '', contentWidth);
   workLines.forEach((line) => {
-    y = checkPageBreak(doc, y, 6, 18);
+    y = checkPageBreak(doc, y, 6, 10);
     doc.text(line, contentLeft, y);
     y += 4.5;
   });
@@ -295,7 +312,7 @@ export function generatePdf(job) {
 
   // ── Section 2: Materials Used (table) ──
   if (report.materialsUsed && report.materialsUsed.length > 0) {
-    y = checkPageBreak(doc, y, 25, 18);
+    y = checkPageBreak(doc, y, 25, 10);
     y = drawSectionHeader(doc, contentLeft, y, 2, 'Materials Used');
 
     // Table header bar
@@ -310,7 +327,7 @@ export function generatePdf(job) {
 
     // Table rows
     report.materialsUsed.forEach((raw, i) => {
-      y = checkPageBreak(doc, y, 8, 18);
+      y = checkPageBreak(doc, y, 8, 10);
       const { item, qty } = parseMaterial(raw);
       if (i % 2 === 0) {
         doc.setFillColor(248, 248, 248);
@@ -331,12 +348,12 @@ export function generatePdf(job) {
 
   // ── Section 3: Notes & Findings ──
   if (report.notes && report.notes.length > 0) {
-    y = checkPageBreak(doc, y, 20, 18);
+    y = checkPageBreak(doc, y, 20, 10);
     y = drawSectionHeader(doc, contentLeft, y, 3, 'Notes & Findings');
 
     doc.setFontSize(9);
     report.notes.forEach((note) => {
-      y = checkPageBreak(doc, y, 12, 18);
+      y = checkPageBreak(doc, y, 12, 10);
       // Yellow › marker
       doc.setTextColor(255, 212, 0);
       doc.setFont('helvetica', 'bold');
@@ -357,7 +374,7 @@ export function generatePdf(job) {
   // ── Section 4: Photos ──
   const photosWithData = (job.photos || []).filter((p) => p.dataUrl);
   if (photosWithData.length > 0) {
-    y = checkPageBreak(doc, y, 60, 18);
+    y = checkPageBreak(doc, y, 60, 10);
     const photoTag = `TAGGED · ${photosWithData.length} PHOTO${photosWithData.length !== 1 ? 'S' : ''}`;
     y = drawSectionHeader(doc, contentLeft, y, 4, 'Photos', photoTag);
 
@@ -380,7 +397,7 @@ export function generatePdf(job) {
     sortedLabels.forEach((label) => {
       const photos = groups[label];
       const rows = Math.ceil(photos.length / cols);
-      y = checkPageBreak(doc, y, 14 + rows * (thumbSize + gap), 18);
+      y = checkPageBreak(doc, y, 14 + rows * (thumbSize + gap), 10);
 
       // Yellow label pill
       const pillText = `${label.replace('-', ' ').toUpperCase()} (${photos.length})`;
@@ -397,7 +414,7 @@ export function generatePdf(job) {
       let col = 0;
       photos.forEach((photo) => {
         if (col === 0) {
-          y = checkPageBreak(doc, y, thumbSize + gap, 18);
+          y = checkPageBreak(doc, y, thumbSize + gap, 10);
         }
         try {
           const x = contentLeft + col * (thumbSize + gap);
@@ -425,7 +442,7 @@ export function generatePdf(job) {
   // SIGN-OFF BLOCK
   // ════════════════════════════════════════
 
-  y = checkPageBreak(doc, y, 55, 18);
+  y = checkPageBreak(doc, y, 55, 10);
 
   const sigColWidth = (contentWidth - 10) / 2;
   const sigImgW = 120 * (sigColWidth / 120); // scale to column width
