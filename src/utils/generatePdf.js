@@ -76,8 +76,8 @@ function checkPageBreak(doc, y, needed, margin) {
 // ── Draw divider line ──
 
 function drawDivider(doc, y, leftMargin, rightMargin) {
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.3);
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
   doc.line(leftMargin, y, doc.internal.pageSize.getWidth() - rightMargin, y);
   return y + 6;
 }
@@ -444,7 +444,7 @@ export function generatePdf(job) {
   doc.text(tradieLabel, sigLeftX + 4, y + 2);
 
   // Right — Client confirmation
-  const clientLabel = 'CLIENT CONFIRMATION';
+  const clientLabel = 'CLIENT SIGN-OFF';
   const clientPillW = doc.getTextWidth(clientLabel) + 8;
   doc.setFillColor(255, 212, 0);
   doc.roundedRect(sigRightX, y - 3, clientPillW, 8, 1.5, 1.5, 'F');
@@ -505,20 +505,23 @@ export function generatePdf(job) {
   doc.setFillColor(10, 10, 10);
   doc.rect(0, footerY, pageWidth, footerHeight, 'F');
 
-  // Left: "● Created with Chippy"
+  // Left: "● CREATED WITH CHIPPY"
   doc.setFontSize(7);
   doc.setFont('courier', 'bold');
-  doc.setTextColor(180, 180, 180);
-  doc.text('● Created with ', contentLeft, footerY + 12);
-  const prefixWidth = doc.getTextWidth('● Created with ');
   doc.setTextColor(255, 212, 0);
-  doc.text('Chippy', contentLeft + prefixWidth, footerY + 12);
+  doc.text('● ', contentLeft, footerY + 12);
+  const dotWidth = doc.getTextWidth('● ');
+  doc.setTextColor(255, 255, 255);
+  doc.text('CREATED WITH ', contentLeft + dotWidth, footerY + 12);
+  const prefixWidth = doc.getTextWidth('CREATED WITH ');
+  doc.setTextColor(255, 212, 0);
+  doc.text('CHIPPY', contentLeft + dotWidth + prefixWidth, footerY + 12);
 
-  // Right: "Ref: JR-XXXX-XXXX · Tamper-proof record"
-  doc.setTextColor(120, 120, 120);
+  // Right: "REF: JR-XXXX-XXXX · TAMPER-PROOF RECORD"
+  doc.setTextColor(255, 255, 255);
   doc.setFont('courier', 'normal');
   doc.setFontSize(6);
-  const footerRight = job.ref ? `Ref: ${job.ref} · Tamper-proof record` : 'Tamper-proof record';
+  const footerRight = job.ref ? `REF: ${job.ref} · TAMPER-PROOF RECORD` : 'TAMPER-PROOF RECORD';
   doc.text(footerRight, contentRight, footerY + 12, { align: 'right' });
 
   return doc;

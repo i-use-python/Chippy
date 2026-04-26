@@ -116,28 +116,28 @@ function SignaturePad({ label, value, onChange }) {
 
   return (
     <div className="flex-1">
-      <div className="flex items-center justify-between mb-1">
-        <span className="inline-block bg-yellow px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-black font-bold">
-          {label}
-        </span>
+      <span className="inline-block bg-yellow px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-black font-bold whitespace-nowrap mb-1">
+        {label}
+      </span>
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-20 border border-black/20 bg-offwhite cursor-crosshair touch-none"
+          onMouseDown={startDraw}
+          onMouseMove={draw}
+          onMouseUp={endDraw}
+          onMouseLeave={endDraw}
+          onTouchStart={startDraw}
+          onTouchMove={draw}
+          onTouchEnd={endDraw}
+        />
         <button
           onClick={clear}
-          className="font-mono text-[9px] uppercase tracking-widest text-charcoal/40 underline"
+          className="absolute top-1 right-1 font-mono text-[8px] uppercase tracking-widest text-charcoal/40 bg-offwhite/80 px-1.5 py-0.5"
         >
           Clear
         </button>
       </div>
-      <canvas
-        ref={canvasRef}
-        className="w-full h-20 border border-black/20 bg-offwhite cursor-crosshair touch-none"
-        onMouseDown={startDraw}
-        onMouseMove={draw}
-        onMouseUp={endDraw}
-        onMouseLeave={endDraw}
-        onTouchStart={startDraw}
-        onTouchMove={draw}
-        onTouchEnd={endDraw}
-      />
       <div className="border-t border-black/30 mt-0" />
       <p className="font-mono text-[8px] uppercase tracking-widest text-charcoal/40 mt-1">
         Sign above
@@ -363,17 +363,14 @@ export default function ReviewReport() {
     <div className="min-h-screen bg-offwhite flex flex-col">
       {/* Header */}
       <header className="px-5 pt-8 pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate('/label')}
-            className="font-mono text-xs uppercase tracking-widest text-charcoal/50 block"
-          >
-            ← Back
-          </button>
-          <img src="/logo.png" alt="Chippy" className="h-[40px]" />
-        </div>
         {!loading && (
           <>
+            <button
+              onClick={() => navigate('/label')}
+              className="font-mono text-xs uppercase tracking-widest text-charcoal/50 mb-4 block"
+            >
+              ← Back
+            </button>
             <div className="flex items-center gap-2 mb-1">
               {job.ref && (
                 <span className="font-mono text-[10px] uppercase tracking-widest text-charcoal/40">
@@ -615,7 +612,7 @@ export default function ReviewReport() {
                           onChange={(v) => handleSignature('tradieSignature', v)}
                         />
                         <SignaturePad
-                          label="Client Confirmation"
+                          label="Client Sign-off"
                           value={job.clientSignature}
                           onChange={(v) => handleSignature('clientSignature', v)}
                         />

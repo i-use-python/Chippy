@@ -93,27 +93,26 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
       {/* Header */}
-      <header className="px-5 pt-8 pb-2 flex items-start justify-between">
-        <div>
-          <img src="/logo.png" alt="Chippy" className="h-[80px] mb-3" />
-          <h1 className="font-heading text-3xl text-black leading-tight">
-            Kia ora, {USER_NAME}
-          </h1>
-          <p className="text-sm text-charcoal mt-1">
-            Talk for 2 minutes. Job's written up.
-          </p>
+      <header className="px-5 pt-8 pb-2">
+        <div className="flex items-center justify-between mb-4">
+          <img src="/logo.png" alt="Chippy" style={{ height: '56px' }} />
+          <button
+            onClick={() => navigate('/profile')}
+            className="p-2 text-charcoal/40 hover:text-charcoal transition-colors"
+            aria-label="Settings"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
         </div>
-        {/* Settings gear */}
-        <button
-          onClick={() => navigate('/profile')}
-          className="mt-1 p-2 text-charcoal/40 hover:text-charcoal transition-colors"
-          aria-label="Settings"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
+        <h1 className="font-heading text-3xl text-black leading-tight">
+          Kia ora, {USER_NAME}
+        </h1>
+        <p className="text-sm text-charcoal mt-1">
+          Talk for 2 minutes. Job's written up.
+        </p>
       </header>
 
       {/* Content */}

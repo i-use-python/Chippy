@@ -24,10 +24,7 @@ export default function SendSave() {
   };
 
   const handleOpenMail = () => {
-    // 1. Download the PDF so it's ready to attach
-    handleDownloadPdf();
-
-    // 2. Build mailto URL
+    // Build mailto URL
     const clientFirstName = job.clientName
       ? job.clientName.split(' ')[0]
       : 'there';
@@ -41,20 +38,20 @@ export default function SendSave() {
       '',
       `Please find attached the job record for work completed at ${job.address} on ${dateStr}.`,
       '',
-      'The PDF has been downloaded to your device — please attach it to this email before sending.',
+      'The PDF has been downloaded to your device - please attach it to this email before sending.',
       '',
       'Thanks,',
       tradieName,
     ].join('\r\n');
 
-    const subject = encodeURIComponent(`Job Record — ${job.address}`);
+    const subject = encodeURIComponent(`Job Record - ${job.address}`);
     const body = encodeURIComponent(bodyText);
     const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
 
-    // 3. Open mail app
+    // Open mail app FIRST while still in user-gesture context
     window.location.href = mailtoUrl;
 
-    // 4. Mark as sent and save
+    // Mark as sent and save
     const updated = { ...job, status: 'sent' };
     saveCurrentJob(updated);
     saveJobToHistory(updated);
@@ -105,7 +102,7 @@ export default function SendSave() {
           <>
             <p className="font-body text-sm text-charcoal mb-8 leading-relaxed">
               Tap below to open your mail app with the job details pre-filled.
-              The PDF will download — attach it to the email before sending.
+              Download the PDF separately, then attach it to the email before sending.
             </p>
 
             {/* Open Mail App button */}
@@ -157,9 +154,9 @@ export default function SendSave() {
             <div className="flex flex-col gap-3 mt-8">
               <button
                 onClick={handleDownloadPdf}
-                className="btn btn-white w-full py-4 text-sm"
+                className="btn btn-black w-full py-4 text-sm"
               >
-                Download PDF Again
+                Download PDF
               </button>
               {photoCount > 0 && (
                 <button
