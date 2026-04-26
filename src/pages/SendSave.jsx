@@ -6,7 +6,7 @@ import { generatePdf } from '../utils/generatePdf';
 export default function SendSave() {
   const navigate = useNavigate();
   const [job, setJob] = useState(getCurrentJob);
-  const [mailOpened, setMailOpened] = useState(false);
+  const [sent, setSent] = useState(false);
   const profile = getBusinessProfile() || {};
 
   if (!job) {
@@ -23,40 +23,58 @@ export default function SendSave() {
     doc.save(pdfFilename);
   };
 
-  const handleOpenMail = () => {
-    // Build mailto URL
-    const clientFirstName = job.clientName
-      ? job.clientName.split(' ')[0]
-      : 'there';
-    const dateStr = new Date(job.date).toLocaleDateString('en-NZ', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    });
-    const tradieName = profile.tradieName || 'The team';
-
-    const bodyText = [
-      `Hi ${clientFirstName},`,
-      '',
-      `Please find attached the job record for work completed at ${job.address} on ${dateStr}.`,
-      '',
-      'The PDF has been downloaded to your device - please attach it to this email before sending.',
-      '',
-      'Thanks,',
-      tradieName,
-    ].join('\r\n');
-
-    const subject = encodeURIComponent(`Job Record - ${job.address}`);
-    const body = encodeURIComponent(bodyText);
-    const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
-
-    // Open mail app FIRST while still in user-gesture context
-    window.location.href = mailtoUrl;
-
-    // Mark as sent and save
+  const markSent = () => {
     const updated = { ...job, status: 'sent' };
     saveCurrentJob(updated);
     saveJobToHistory(updated);
     setJob(updated);
-    setMailOpened(true);
+    setSent(true);
+  };
+
+  const handleSendReport = async () => {
+    if (!job) return;
+
+    // Generate the PDF as a Blob/File
+    const doc = generatePdf(job);
+    const pdfBlob = doc.output('blob');
+    const filename = `Chippy_${job.ref || 'report'}.pdf`;
+    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+    // Build email content
+    const clientFirstName = (job.clientName || '').split(' ')[0] || 'there';
+    const businessName = profile.businessName || 'your tradie';
+    const address = job.address || 'the job site';
+    const dateStr = new Date(job.date).toLocaleDateString('en-NZ');
+
+    const subject = `Job Record - ${address}`;
+    const body = `Hi ${clientFirstName},\n\nPlease find attached the job record for work completed at ${address} on ${dateStr}.\n\nThanks,\n${businessName}`;
+
+    // Try Web Share API first (mobile — can attach the PDF natively)
+    const shareData = {
+      title: subject,
+      text: body,
+      files: [pdfFile],
+    };
+
+    if (navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        markSent();
+        return;
+      } catch (err) {
+        // User cancelled the share sheet — don't fall through to mailto
+        if (err.name === 'AbortError') return;
+        // Other error — fall through to mailto
+        console.warn('Share failed, falling back to mailto:', err);
+      }
+    }
+
+    // Fallback: mailto (desktop or older browsers — no attachment)
+    // Download the PDF separately so the user can attach it manually
+    doc.save(filename);
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + '\n\n(The PDF has been downloaded — please attach it before sending.)')}`;
+    window.location.href = mailtoUrl;
+    markSent();
   };
 
   const handleSavePhotos = () => {
@@ -81,7 +99,7 @@ export default function SendSave() {
   return (
     <div className="min-h-screen bg-offwhite flex flex-col">
       <header className="px-5 pt-8 pb-4">
-        {!mailOpened && (
+        {!sent && (
           <button
             onClick={() => navigate('/report')}
             className="font-mono text-xs uppercase tracking-widest text-charcoal/50 mb-4 block"
@@ -93,24 +111,26 @@ export default function SendSave() {
           Final step
         </p>
         <h1 className="font-heading text-2xl text-black">
-          {mailOpened ? 'Mail app opened' : 'Send your report'}
+          {sent ? 'Report sent!' : 'Send your report'}
         </h1>
       </header>
 
       <main className="flex-1 px-5 pb-28">
-        {!mailOpened ? (
+        {!sent ? (
           <>
             <p className="font-body text-sm text-charcoal mb-8 leading-relaxed">
-              Tap below to open your mail app with the job details pre-filled.
-              Download the PDF separately, then attach it to the email before sending.
+              Tap below to send the job record to the client. On mobile, you'll
+              get the share sheet to pick your mail app — the PDF will be attached
+              automatically. On desktop, the PDF will download and your mail app
+              will open.
             </p>
 
-            {/* Open Mail App button */}
+            {/* Send Report button */}
             <button
-              onClick={handleOpenMail}
+              onClick={handleSendReport}
               className="btn btn-yellow w-full py-4 text-sm mb-4"
             >
-              Open Mail App
+              Send Report
             </button>
 
             {/* Secondary actions */}
@@ -126,12 +146,12 @@ export default function SendSave() {
                 onClick={handleSavePhotos}
                 className="btn btn-white w-full py-4 text-sm"
               >
-                Save Photos to Phone
+                Save Photos to Files
               </button>
             )}
           </>
         ) : (
-          /* Confirmation after opening mail */
+          /* Confirmation after sending */
           <div className="text-center py-8">
             {/* Checkmark */}
             <div className="w-20 h-20 bg-yellow border-2 border-black rounded-full
@@ -144,7 +164,8 @@ export default function SendSave() {
 
             <h2 className="font-heading text-xl text-black mb-2">Sweet as!</h2>
             <p className="font-body text-sm text-charcoal mb-6 leading-relaxed">
-              Don't forget to attach the PDF before sending!
+              The job record has been shared with your client.
+              Make sure they confirm receipt.
             </p>
             <p className="font-mono text-[10px] uppercase tracking-widest text-charcoal/40">
               {job.address}
@@ -163,7 +184,7 @@ export default function SendSave() {
                   onClick={handleSavePhotos}
                   className="btn btn-white w-full py-4 text-sm"
                 >
-                  Save Photos to Phone
+                  Save Photos to Files
                 </button>
               )}
             </div>
@@ -172,7 +193,7 @@ export default function SendSave() {
       </main>
 
       {/* Bottom Button */}
-      {mailOpened && (
+      {sent && (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-gradient-to-t from-offwhite via-offwhite to-transparent pt-8">
           <button onClick={handleDone} className="btn btn-yellow w-full py-4 text-sm">
             Done
