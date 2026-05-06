@@ -3,10 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentJob, saveCurrentJob, saveJobToHistory, clearCurrentJob, getBusinessProfile } from '../utils/jobStore';
 import { generatePdf } from '../utils/generatePdf';
 
+const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+const iconProps = {
+  width: 20, height: 20, viewBox: '0 0 24 24',
+  fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+  strokeLinecap: 'round', strokeLinejoin: 'round',
+};
+const MailIcon = () => (
+  <svg {...iconProps}><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+);
+const MessageSquareIcon = () => (
+  <svg {...iconProps}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+);
+const MessageCircleIcon = () => (
+  <svg {...iconProps}><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></svg>
+);
+const ShareIcon = () => (
+  <svg {...iconProps}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" /></svg>
+);
+
 export default function SendSave() {
   const navigate = useNavigate();
   const [job, setJob] = useState(getCurrentJob);
   const [sent, setSent] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
   const profile = getBusinessProfile() || {};
 
   if (!job) {
@@ -31,50 +52,103 @@ export default function SendSave() {
     setSent(true);
   };
 
-  const handleSendReport = async () => {
+  const buildShareContent = () => {
+    const doc = generatePdf(job);
+    const filename = `Chippy_${job.ref || 'report'}.pdf`;
+    const clientFirstName = (job.clientName || '').split(' ')[0] || 'there';
+    const businessName = profile.businessName || 'your tradie';
+    const address = job.address || 'the job site';
+    const dateStr = new Date(job.date).toLocaleDateString('en-NZ');
+    const subject = `Job Record - ${address}`;
+    const body = `Hi ${clientFirstName},\n\nPlease find attached the job record for work completed at ${address} on ${dateStr}.\n\nThanks,\n${businessName}`;
+    return { doc, filename, subject, body };
+  };
+
+  const openShareSheet = () => setShowShareSheet(true);
+  const closeShareSheet = () => setShowShareSheet(false);
+
+  const handleMail = () => {
     if (!job) return;
 
-    // Generate the PDF as a Blob/File
-    const doc = generatePdf(job);
-    const pdfBlob = doc.output('blob');
-    const filename = `Chippy_${job.ref || 'report'}.pdf`;
-    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
-
-    // Build email content
     const clientFirstName = (job.clientName || '').split(' ')[0] || 'there';
     const businessName = profile.businessName || 'your tradie';
     const address = job.address || 'the job site';
     const dateStr = new Date(job.date).toLocaleDateString('en-NZ');
 
     const subject = `Job Record - ${address}`;
-    const body = `Hi ${clientFirstName},\n\nPlease find attached the job record for work completed at ${address} on ${dateStr}.\n\nThanks,\n${businessName}`;
+    const body = `Hi ${clientFirstName},\n\nPlease find attached the job record for work completed at ${address} on ${dateStr}.\n\nThe PDF has been downloaded - please attach it before sending.\n\nThanks,\n${businessName}`;
 
-    // Try Web Share API first (mobile — can attach the PDF natively)
-    const shareData = {
-      title: subject,
-      text: body,
-      files: [pdfFile],
-    };
+    // Fire mailto FIRST while we're still in the user-gesture context
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
+    // Generate and download the PDF AFTER mailto, with a small delay so iOS doesn't kill it
+    setTimeout(() => {
+      const doc = generatePdf(job);
+      doc.save(`Chippy_${job.ref || 'report'}.pdf`);
+    }, 500);
+
+    markSent();
+  };
+
+  const handleMessages = () => {
+    if (!job) return;
+
+    const clientFirstName = (job.clientName || '').split(' ')[0] || 'there';
+    const businessName = profile.businessName || 'your tradie';
+    const address = job.address || 'the job site';
+    const dateStr = new Date(job.date).toLocaleDateString('en-NZ');
+
+    const body = `Hi ${clientFirstName},\n\nPlease find attached the job record for work completed at ${address} on ${dateStr}.\n\nThe PDF has been downloaded - please attach it before sending.\n\nThanks,\n${businessName}`;
+
+    window.location.href = `sms:?body=${encodeURIComponent(body)}`;
+
+    setTimeout(() => {
+      const doc = generatePdf(job);
+      doc.save(`Chippy_${job.ref || 'report'}.pdf`);
+    }, 500);
+
+    markSent();
+  };
+
+  const handleWhatsApp = () => {
+    if (!job) return;
+
+    const clientFirstName = (job.clientName || '').split(' ')[0] || 'there';
+    const businessName = profile.businessName || 'your tradie';
+    const address = job.address || 'the job site';
+    const dateStr = new Date(job.date).toLocaleDateString('en-NZ');
+
+    const body = `Hi ${clientFirstName},\n\nPlease find attached the job record for work completed at ${address} on ${dateStr}.\n\nThe PDF has been downloaded - please attach it before sending.\n\nThanks,\n${businessName}`;
+
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(body)}`;
+
+    setTimeout(() => {
+      const doc = generatePdf(job);
+      doc.save(`Chippy_${job.ref || 'report'}.pdf`);
+    }, 500);
+
+    markSent();
+  };
+
+  const handleAirDrop = async () => {
+    const { doc, filename, subject, body } = buildShareContent();
+    const pdfBlob = doc.output('blob');
+    const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+    const shareData = { title: subject, text: body, files: [pdfFile] };
     if (navigator.canShare && navigator.canShare(shareData)) {
       try {
         await navigator.share(shareData);
+        closeShareSheet();
         markSent();
-        return;
       } catch (err) {
-        // User cancelled the share sheet — don't fall through to mailto
         if (err.name === 'AbortError') return;
-        // Other error — fall through to mailto
-        console.warn('Share failed, falling back to mailto:', err);
+        console.warn('Share failed:', err);
       }
+    } else {
+      doc.save(filename);
+      closeShareSheet();
+      markSent();
     }
-
-    // Fallback: mailto (desktop or older browsers — no attachment)
-    // Download the PDF separately so the user can attach it manually
-    doc.save(filename);
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + '\n\n(The PDF has been downloaded — please attach it before sending.)')}`;
-    window.location.href = mailtoUrl;
-    markSent();
   };
 
   const handleSavePhotos = () => {
@@ -119,15 +193,14 @@ export default function SendSave() {
         {!sent ? (
           <>
             <p className="font-body text-sm text-charcoal mb-8 leading-relaxed">
-              Tap below to send the job record to the client. On mobile, you'll
-              get the share sheet to pick your mail app — the PDF will be attached
-              automatically. On desktop, the PDF will download and your mail app
-              will open.
+              Tap below to send the job record to the client. Pick a channel —
+              the PDF will download and the chosen app will open with the message
+              pre-filled.
             </p>
 
             {/* Send Report button */}
             <button
-              onClick={handleSendReport}
+              onClick={openShareSheet}
               className="btn btn-yellow w-full py-4 text-sm mb-4"
             >
               Send Report
@@ -198,6 +271,63 @@ export default function SendSave() {
           <button onClick={handleDone} className="btn btn-yellow w-full py-4 text-sm">
             Done
           </button>
+        </div>
+      )}
+
+      {/* Share Sheet — bottom sheet on mobile, centred modal on desktop */}
+      {showShareSheet && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50"
+          onClick={closeShareSheet}
+        >
+          <div
+            className="w-full max-w-[430px] bg-offwhite border-t-2 border-x-2 sm:border-2 border-black p-5 shadow-[3px_3px_0_#0A0A0A]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-mono text-[11px] uppercase tracking-widest text-yellow bg-black inline-block px-2 py-1 mb-3">
+              Share
+            </p>
+            <h2 className="font-heading text-xl text-black mb-1">Send to client</h2>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-charcoal/50 mb-5">
+              Pick a channel
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleMail}
+                className="btn btn-yellow w-full py-4 text-sm !justify-start pl-5"
+              >
+                <MailIcon /> Mail
+              </button>
+              <button
+                onClick={handleMessages}
+                className="btn btn-white w-full py-4 text-sm !justify-start pl-5"
+              >
+                <MessageSquareIcon /> Messages
+              </button>
+              <button
+                onClick={handleWhatsApp}
+                className="btn btn-white w-full py-4 text-sm !justify-start pl-5"
+              >
+                <MessageCircleIcon /> WhatsApp
+              </button>
+              {isIOS && (
+                <button
+                  onClick={handleAirDrop}
+                  className="btn btn-white w-full py-4 text-sm !justify-start pl-5"
+                >
+                  <ShareIcon /> AirDrop
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={closeShareSheet}
+              className="font-mono text-xs uppercase tracking-widest text-charcoal/60 mt-5 mx-auto block py-2"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
