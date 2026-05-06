@@ -50,27 +50,17 @@ function parseMaterial(str) {
 // ── Draw hazard stripe down left edge of the current page ──
 
 function drawHazardStripe(doc, x, y, width, height) {
-  // Yellow background fill for the entire stripe
-  doc.setFillColor(255, 212, 0);
-  doc.rect(x, y, width, height, 'F');
-
-  // Save state, set up clipping to keep diagonals inside the stripe
-  doc.saveGraphicsState();
-  doc.rect(x, y, width, height).clip();
-  doc.discardPath();
-
-  // Black diagonal lines, ~3pt thick, ~6pt apart
-  doc.setDrawColor(10, 10, 10);
-  doc.setLineWidth(3);
-
-  const spacing = 6;
-  const slope = 1; // 45-degree angle
-
-  for (let i = -height; i < height + width; i += spacing) {
-    doc.line(x + i, y, x + i + height * slope, y + height);
+  const segH = 8;
+  let yi = y;
+  let i = 0;
+  while (yi < y + height) {
+    const h = Math.min(segH, y + height - yi);
+    if (i % 2 === 0) doc.setFillColor(255, 212, 0);
+    else doc.setFillColor(10, 10, 10);
+    doc.rect(x, yi, width, h, 'F');
+    yi += h;
+    i++;
   }
-
-  doc.restoreGraphicsState();
 }
 
 function drawLeftHazardStripe(doc) {
