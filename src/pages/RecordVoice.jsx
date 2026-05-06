@@ -54,22 +54,23 @@ export default function RecordVoice() {
     recognition.lang = 'en-NZ';
 
     recognition.onresult = (event) => {
-      let final = '';
-      let interim = '';
-      for (let i = 0; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          final += result[0].transcript + ' ';
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
         } else {
-          interim += result[0].transcript;
+          interimTranscript += transcript;
         }
       }
-      if (final) {
-        setTranscript((prev) => prev + final);
-        setInterimText(interim);
-      } else {
-        setInterimText(interim);
+
+      // Append final to accumulated, but always REPLACE interim (don't append it)
+      if (finalTranscript) {
+        setTranscript((prev) => prev + finalTranscript);
       }
+      setInterimText(interimTranscript);
     };
 
     recognition.onerror = (event) => {
@@ -194,7 +195,7 @@ export default function RecordVoice() {
       </header>
 
       {/* Recording Area */}
-      <main className="flex-1 flex flex-col items-center px-5 pb-28">
+      <main className="flex-1 flex flex-col items-center px-5 pb-40">
         {/* Status indicator */}
         <div className="flex items-center gap-2 mb-3 mt-4">
           {isRecording ? (
