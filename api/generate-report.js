@@ -10,7 +10,16 @@
  *    and 50 requests/day. Prevents abuse and runaway API costs.
  * 3. Input validation — checks types, lengths, and structure of all
  *    fields before they reach the Anthropic API.
+ *
+ * Resilience:
+ * - The Anthropic call is wrapped in a retry loop (see callAnthropicWithRetry)
+ *   so transient upstream errors (429/5xx/529 overloaded) don't surface to the
+ *   user. maxDuration is raised to 60s to give those retries room to complete.
  */
+
+// Allow up to 60s so the retry/backoff loop below can finish within one
+// invocation (Vercel's default is 10s, which can cut retries short).
+export const maxDuration = 60;
 
 // ── CORS ──
 
@@ -171,6 +180,99 @@ const SYSTEM_PROMPT = `You are a report-writing assistant for NZ tradies. Take t
 
 Do not invent materials or details not mentioned. If the tradie didn't mention materials, return an empty array. If there are no observations or findings in the transcript, return an empty notes array. Be honest about what you're told. Use New Zealand English. Return ONLY the JSON object, no markdown fences.`;
 
+// ── Anthropic call with retry ──
+
+// Upstream statuses worth retrying: rate limits, overloaded, and gateway/
+// transient 5xx. 529 = Anthropic "overloaded".
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504, 529]);
+
+// Backoff (ms) waited *before* each retry. With 3 entries this gives 4 total
+// attempts: initial call, then retries after 1s, 3s, 7s. Total worst-case
+// backoff is 11s, comfortably inside maxDuration (60s).
+const RETRY_BACKOFFS_MS = [1000, 3000, 7000];
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Calls the Anthropic Messages API, retrying on transient failures.
+ * Resolves with the parsed JSON body on success.
+ * Throws an Error annotated with `.status` and `.detail` once retries are
+ * exhausted or on a non-retryable error.
+ */
+async function callAnthropicWithRetry({ apiKey, system, userMessage }) {
+  const maxAttempts = RETRY_BACKOFFS_MS.length + 1; // initial + retries
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let response;
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 1024,
+          system,
+          messages: [{ role: 'user', content: userMessage }],
+        }),
+      });
+    } catch (networkError) {
+      // Connection-level failure (DNS, reset, timeout) — treat as retryable.
+      console.error(
+        `[generate-report] Anthropic request failed — attempt ${attempt}/${maxAttempts}, network error:`,
+        networkError.message
+      );
+      if (attempt < maxAttempts) {
+        const delay = RETRY_BACKOFFS_MS[attempt - 1];
+        console.warn(
+          `[generate-report] Retrying after network error in ${delay}ms (next attempt ${attempt + 1}/${maxAttempts})`
+        );
+        await sleep(delay);
+        continue;
+      }
+      const err = new Error(`Anthropic request failed after ${maxAttempts} attempts`);
+      err.status = 502;
+      err.detail = networkError.message;
+      throw err;
+    }
+
+    if (response.ok) {
+      return await response.json();
+    }
+
+    // Non-OK HTTP response — capture the full body for logging.
+    const errorBody = await response.text();
+    const retryable = RETRYABLE_STATUS.has(response.status);
+    console.error(
+      `[generate-report] Anthropic API error — attempt ${attempt}/${maxAttempts}, status ${response.status}, retryable=${retryable}, body:`,
+      errorBody
+    );
+
+    if (retryable && attempt < maxAttempts) {
+      const delay = RETRY_BACKOFFS_MS[attempt - 1];
+      console.warn(
+        `[generate-report] Status ${response.status} is retryable — retrying in ${delay}ms (next attempt ${attempt + 1}/${maxAttempts})`
+      );
+      await sleep(delay);
+      continue;
+    }
+
+    // Non-retryable, or retries exhausted.
+    const err = new Error(`Anthropic API returned ${response.status}`);
+    err.status = response.status;
+    err.detail = errorBody;
+    throw err;
+  }
+
+  // Unreachable, but keep the type honest.
+  const err = new Error('Anthropic request failed unexpectedly');
+  err.status = 502;
+  throw err;
+}
+
 // ── Handler ──
 
 export default async function handler(req, res) {
@@ -229,43 +331,36 @@ export default async function handler(req, res) {
   const userMessage = `Job: ${address || 'Not specified'}\nDate: ${date || new Date().toISOString()}\nPhotos: ${photoSummary}\nTranscript: ${transcript}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
+    const data = await callAnthropicWithRetry({
+      apiKey,
+      system: SYSTEM_PROMPT,
+      userMessage,
     });
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('Anthropic API error:', response.status, errorBody);
-      return res.status(502).json({
-        error: `Anthropic API returned ${response.status}`,
-        detail: errorBody,
-      });
-    }
-
-    const data = await response.json();
     const text = data.content[0].text;
 
     // Extract JSON from response (handles both raw JSON and markdown-fenced)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('[generate-report] No valid JSON in Anthropic response. Raw text:', text);
       return res.status(502).json({ error: 'No valid JSON in API response' });
     }
 
     const report = JSON.parse(jsonMatch[0]);
     return res.status(200).json({ report });
   } catch (error) {
-    console.error('Report generation failed:', error);
-    return res.status(500).json({ error: 'Report generation failed', detail: error.message });
+    // Retries are already exhausted by this point. Log full detail for
+    // debugging and return a transient-looking status so the client knows it
+    // can safely retry.
+    const status = error.status && error.status >= 400 ? error.status : 502;
+    console.error('[generate-report] Report generation failed after retries:', {
+      status,
+      message: error.message,
+      detail: error.detail,
+    });
+    return res.status(status).json({
+      error: 'Report generation failed',
+      detail: error.detail || error.message,
+    });
   }
 }

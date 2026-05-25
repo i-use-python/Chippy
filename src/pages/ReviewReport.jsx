@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentJob, saveCurrentJob, getBusinessProfile } from '../utils/jobStore';
-import { generateReport } from '../utils/generateReport';
+import { generateReport, getPendingReportInput } from '../utils/generateReport';
 
 // ── Helpers ──
 
@@ -272,41 +272,63 @@ export default function ReviewReport() {
   const [report, setReport] = useState(job?.report || null);
   const [loading, setLoading] = useState(!job?.report);
   const [elapsed, setElapsed] = useState(null);
-  const [error, setError] = useState(null);
-  const [usedFallback, setUsedFallback] = useState(false);
+  // errorState: null when fine, else { offline: bool, message: string }
+  const [errorState, setErrorState] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
   const profile = getBusinessProfile() || {};
+
+  // Prefer the saved safety copy so "Try Again" resubmits the exact input even
+  // if `job` has drifted; fall back to the current job.
+  const buildGenerateInput = () => {
+    const pending = getPendingReportInput();
+    return pending || {
+      address: job.address,
+      date: new Date(job.date).toLocaleDateString('en-NZ'),
+      transcript: job.transcript,
+      photos: job.photos,
+    };
+  };
+
+  // Applies a generateReport() result to component state.
+  const applyResult = (result) => {
+    if (result.ok) {
+      setReport(result.report);
+      setElapsed(result.elapsed || '2.1');
+      setLoading(false);
+      const updated = { ...job, report: result.report };
+      saveCurrentJob(updated);
+      setJob(updated);
+      return;
+    }
+    // Failed after the server's retries — show a friendly, recoverable error.
+    setLoading(false);
+    setErrorState({
+      offline: !!result.offline,
+      message: result.offline
+        ? 'You appear to be offline. Connect to wifi or data and try again.'
+        : "Chippy couldn't write your report just now. Your job and photos are saved — give it another go.",
+    });
+  };
+
+  // "Try Again" — reset to the loading state, then re-run with the saved input.
+  const handleRetry = () => {
+    setErrorState(null);
+    setLoading(true);
+    generateReport(buildGenerateInput()).then(applyResult);
+  };
 
   useEffect(() => {
     if (report) return;
     if (!job) { navigate('/'); return; }
 
     let cancelled = false;
-
-    async function generate() {
-      setLoading(true);
-      const result = await generateReport({
-        address: job.address,
-        date: new Date(job.date).toLocaleDateString('en-NZ'),
-        transcript: job.transcript,
-        photos: job.photos,
-      });
-
+    async function run() {
+      const result = await generateReport(buildGenerateInput());
       if (cancelled) return;
-
-      setReport(result.report);
-      setElapsed(result.elapsed || '2.1');
-      setUsedFallback(result.usedFallback);
-      if (result.error) setError(result.error);
-      setLoading(false);
-
-      const updated = { ...job, report: result.report };
-      saveCurrentJob(updated);
-      setJob(updated);
+      applyResult(result);
     }
-
-    generate();
+    run();
     return () => { cancelled = true; };
   }, []);
 
@@ -363,7 +385,7 @@ export default function ReviewReport() {
     <div className="min-h-screen bg-offwhite flex flex-col">
       {/* Header */}
       <header className="px-5 pt-8 pb-4">
-        {!loading && (
+        {!loading && !errorState && (
           <>
             <button
               onClick={() => navigate('/label')}
@@ -385,9 +407,7 @@ export default function ReviewReport() {
               {job.address || 'Job Report'}
             </h1>
             <p className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50 mt-1">
-              {usedFallback
-                ? 'Using sample report (API unavailable)'
-                : `Chippy created in ${elapsed}s`}
+              {`Chippy created in ${elapsed}s`}
             </p>
           </>
         )}
@@ -395,23 +415,46 @@ export default function ReviewReport() {
 
       <main className="flex-1 px-5 pt-5 pb-28">
         {loading ? (
+          // Stays visible for the whole request, including the server-side
+          // retry/backoff loop (up to ~a minute).
           <div className="flex flex-col items-center justify-center py-16">
             <img src="/logo.png" alt="Chippy" className="h-[100px] mb-6" />
             <div className="spinner mb-6" />
-            <p className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50">
-              Chippy is writing your report...
+            <p className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50 text-center px-6">
+              Generating your report... this can take up to a minute
             </p>
+          </div>
+        ) : errorState ? (
+          // Friendly, recoverable error — never a red banner. The job + photos
+          // are already saved, so "Try Again" resubmits the exact input.
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <img src="/logo.png" alt="Chippy" className="h-[80px] mb-6 opacity-90" />
+            <div className="w-14 h-14 rounded-full bg-yellow flex items-center justify-center mb-5">
+              <span className="text-2xl font-bold text-black leading-none">
+                {errorState.offline ? '⚡' : '↻'}
+              </span>
+            </div>
+            <h2 className="font-heading text-xl text-black mb-2">
+              {errorState.offline ? 'No connection' : 'That didn’t go through'}
+            </h2>
+            <p className="font-body text-sm text-charcoal/70 max-w-[280px] mb-8 leading-relaxed">
+              {errorState.message}
+            </p>
+            <button
+              onClick={handleRetry}
+              className="btn btn-yellow w-full max-w-[280px] py-4 text-base"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate('/label')}
+              className="font-mono text-xs uppercase tracking-widest text-charcoal/40 mt-5"
+            >
+              ← Back
+            </button>
           </div>
         ) : (
           <>
-            {error && (
-              <div className="bg-red-500/10 border border-red-400 px-4 py-2 mb-4">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-red-600">
-                  API Error: {error}
-                </p>
-              </div>
-            )}
-
             {/* ════════ REPORT CARD ════════ */}
             <div className="bg-white border-2 border-black relative overflow-hidden">
               {/* Hazard stripe accent on left edge */}
@@ -637,7 +680,7 @@ export default function ReviewReport() {
       </main>
 
       {/* ── Bottom Buttons ── */}
-      {!loading && (
+      {!loading && !errorState && (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-gradient-to-t from-offwhite via-offwhite to-transparent pt-8">
           <div className="flex gap-3">
             {editing ? (
