@@ -48,16 +48,16 @@ function JobCard({ job }) {
           <h3 className="font-heading text-sm text-black leading-tight truncate">
             {job.address}
           </h3>
-          <p className="text-sm text-charcoal mt-0.5">
+          <p className="text-sm text-charcoal mt-0.5 break-words">
             {job.jobTitle || job.description || 'New job'}
           </p>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 min-w-0">
             {job.ref && (
-              <span className="font-mono text-[10px] text-charcoal/40">
+              <span className="font-mono text-[10px] text-charcoal/40 truncate">
                 {job.ref}
               </span>
             )}
-            <span className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-charcoal/50 shrink-0">
               {formatDate(job.date)}
             </span>
           </div>
