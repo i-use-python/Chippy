@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DEMO_JOBS, USER_NAME } from '../data/demoData';
-import { getAllJobs, seedDemoJobs, startNewJob, seedBusinessProfile } from '../utils/jobStore';
+import { getAllJobs, seedDemoJobs, startNewJob, seedBusinessProfile, getTimeSavedTotals } from '../utils/jobStore';
 
 function formatDate(isoString) {
   const date = new Date(isoString);
@@ -15,21 +15,20 @@ function formatDate(isoString) {
 }
 
 function StatCard({ jobs }) {
-  const sentJobs = jobs.filter((j) => j.status === 'sent');
-  const hoursSaved = sentJobs.length * 1.5;
+  const { jobCount, hours } = getTimeSavedTotals(jobs);
 
   return (
     <div className="bg-yellow border-2 border-black p-4 mb-6 relative overflow-hidden">
       <div className="hazard-stripe h-[6px] absolute top-0 left-0 right-0" />
       <div className="pt-2">
         <p className="font-mono text-[11px] uppercase tracking-widest text-black/60 mb-1">
-          Saved this week
+          Saved with Chippy
         </p>
         <p className="font-heading text-4xl text-black leading-none">
-          {hoursSaved} hrs
+          {hours.toFixed(1)} hrs
         </p>
         <p className="font-body text-sm text-black/60 mt-1">
-          {sentJobs.length} job{sentJobs.length !== 1 ? 's' : ''} documented
+          {jobCount} job{jobCount !== 1 ? 's' : ''} documented
         </p>
       </div>
     </div>

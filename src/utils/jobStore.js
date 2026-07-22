@@ -132,6 +132,35 @@ export function saveJobToHistory(job) {
   localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
 }
 
+// ── Time Saved ──
+
+/**
+ * Flat estimate of the paperwork time a tradie avoids per documented job.
+ * Used when a job has no measured `timeSavedMinutes` of its own — which is
+ * every job today, since nothing writes that field yet.
+ */
+export const MINUTES_SAVED_PER_JOB = 22;
+
+/** Minutes saved by a single job: its stored value if present, else the estimate. */
+export function getJobTimeSavedMinutes(job) {
+  const stored = job?.timeSavedMinutes;
+  return typeof stored === 'number' && stored >= 0 ? stored : MINUTES_SAVED_PER_JOB;
+}
+
+/**
+ * Cumulative, all-time totals across every documented job.
+ *
+ * Counts each saved job, regardless of `status`. A job only reaches history
+ * once its report exists, but `status` is flipped to 'sent' solely when a
+ * share/mailto completes — so filtering on it silently zeroed the stat for
+ * anyone who cancelled the share sheet.
+ */
+export function getTimeSavedTotals(jobs) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  const minutes = list.reduce((sum, job) => sum + getJobTimeSavedMinutes(job), 0);
+  return { jobCount: list.length, minutes, hours: minutes / 60 };
+}
+
 export function seedDemoJobs(demoJobs) {
   const existing = getAllJobs();
   if (existing.length === 0) {
